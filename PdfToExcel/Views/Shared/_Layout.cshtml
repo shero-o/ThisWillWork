@@ -38,11 +38,25 @@
                         @if (user != null)
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Files" asp-action="Index">
-                                    Dashboard
+                                <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "fw-bold text-primary" : "text-dark")"
+                                   asp-controller="Files" asp-action="Index">
+                                    AI Convert
                                 </a>
                             </li>
 
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Forex" ? "fw-bold text-primary" : "text-dark")"
+                                   asp-controller="Currency" asp-action="Forex">
+                                    Forex
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Official" ? "fw-bold text-primary" : "text-dark")"
+                                   asp-controller="Currency" asp-action="Official">
+                                    Official
+                                </a>
+                            </li>
                         }
 
                     </ul>

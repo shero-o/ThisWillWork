@@ -14,6 +14,7 @@ builder.Services.AddHttpClient<AiService>();
 builder.Services.AddSingleton<PdfToImageService>();
 builder.Services.AddSingleton<OcrService>();
 builder.Services.AddSingleton<ExcelService>();
+builder.Services.AddScoped<ExcelReaderService>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

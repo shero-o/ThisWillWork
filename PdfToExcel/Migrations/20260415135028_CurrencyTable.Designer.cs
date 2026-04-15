@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PdfToExcel.Data;
 
@@ -11,9 +12,11 @@ using PdfToExcel.Data;
 namespace PdfToExcel.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260415135028_CurrencyTable")]
+    partial class CurrencyTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -52,6 +55,9 @@ namespace PdfToExcel.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<double>("Average")
+                        .HasColumnType("float");
+
                     b.Property<double>("Buy")
                         .HasColumnType("float");
 
@@ -83,6 +89,9 @@ namespace PdfToExcel.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<double>("Average")
+                        .HasColumnType("float");
+
                     b.Property<double>("Buy")
                         .HasColumnType("float");
 
@@ -97,6 +106,9 @@ namespace PdfToExcel.Migrations
                     b.Property<string>("Flag")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("Margin")
+                        .HasColumnType("float");
 
                     b.Property<double>("Sell")
                         .HasColumnType("float");

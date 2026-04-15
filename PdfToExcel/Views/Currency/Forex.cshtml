@@ -1,0 +1,61 @@
+﻿@model List<ForexCurrency>
+
+<h2>Forex</h2>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["Error"]
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["Success"]
+    </div>
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Flag</th>
+            <th>Code</th>
+            <th>Country</th>
+            <th>Buy</th>
+            <th>Sell</th>
+            <th>Avrage</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var c in Model)
+        {
+            <tr>
+                <td><img src="@c.Flag" width="30" /></td>
+                <td>@c.Code</td>
+                <td>@c.Country</td>
+                <td>@c.Buy</td>
+                <td>@c.Sell</td>
+				<td>@c.Average</td>
+            </tr>
+        }
+    </tbody>
+</table>
+<form method="post" enctype="multipart/form-data" asp-action="UploadExcel">
+    <input type="hidden" name="type" value="forex" />
+
+    <div class="mb-3">
+        <input type="file" name="file" class="form-control" accept=".xlsx" required />
+    </div>
+
+    <button class="btn btn-primary mb-2">
+        Upload Excel
+    </button>
+</form>
+
+<form method="post" asp-action="PublishForex">
+    <button class="btn btn-success mb-3"
+        @(TempData["ValidFile"] == null ? "disabled" : "")>
+        Publish Forex Data
+    </button>
+</form>

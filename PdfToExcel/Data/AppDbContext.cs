@@ -10,6 +10,8 @@ namespace PdfToExcel.Data
         {
         }
 
+        public DbSet<ForexCurrency> ForexCurrencies { get; set; }
+        public DbSet<OfficialCurrency> OfficialCurrencies { get; set; }
         public DbSet<ConvertedFile> ConvertedFiles { get; set; } = null!;
     }
 }
