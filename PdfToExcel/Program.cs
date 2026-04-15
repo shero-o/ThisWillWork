@@ -10,6 +10,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession();
 
+builder.Services.AddHttpClient<AiService>();
 builder.Services.AddSingleton<PdfToImageService>();
 builder.Services.AddSingleton<OcrService>();
 builder.Services.AddSingleton<ExcelService>();

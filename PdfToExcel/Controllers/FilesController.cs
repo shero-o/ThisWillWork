@@ -2,6 +2,7 @@
 using PdfToExcel.Data;
 using PdfToExcel.Models;
 using PdfToExcel.Services;
+using System.Text.Json;
 
 namespace PdfToExcel.Controllers
 {
@@ -12,19 +13,22 @@ namespace PdfToExcel.Controllers
         private readonly PdfToImageService _pdfToImage;
         private readonly OcrService _ocr;
         private readonly ExcelService _excel;
+        private readonly AiService _ai; // 🔥 NEW
 
         public FilesController(
             AppDbContext context,
             IWebHostEnvironment env,
             PdfToImageService pdfToImage,
             OcrService ocr,
-            ExcelService excel)
+            ExcelService excel,
+            AiService ai) // 🔥 NEW
         {
             _context = context;
             _env = env;
             _pdfToImage = pdfToImage;
             _ocr = ocr;
             _excel = excel;
+            _ai = ai; // 🔥 NEW
         }
 
         public IActionResult Index(int page = 1)
@@ -83,31 +87,46 @@ namespace PdfToExcel.Controllers
 
                 generatedImages = _pdfToImage.Convert(tempPdfPath);
 
-                var extractedLines = new List<List<string>>();
+                // 🔥 OCR → FULL TEXT
+                var fullText = "";
 
                 foreach (var imagePath in generatedImages)
                 {
-                    var pageText = _ocr.ExtractText(imagePath);
-                    var rows = pageText
-                        .Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(line => line.Trim())
-                        .Where(line => !string.IsNullOrWhiteSpace(line))
-                        .Select(line => line
-                            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                            .ToList())
-                        .Where(tokens => tokens.Count > 0)
-                        .ToList();
-
-                    extractedLines.AddRange(rows);
+                    fullText += _ocr.ExtractText(imagePath) + "\n";
                 }
 
-                if (!extractedLines.Any())
+                if (string.IsNullOrWhiteSpace(fullText))
                 {
-                    TempData["Error"] = "OCR completed, but no readable text was found in this PDF.";
+                    TempData["Error"] = "OCR found no readable text.";
                     return RedirectToAction("Index");
                 }
 
-                var excelFileName = _excel.CreateExcel(extractedLines);
+                // 🔥🔥 AI STEP
+                var aiRaw = await _ai.CleanOcrAsync(fullText);
+
+                var aiResponse = JsonSerializer.Deserialize<AiResponse>(aiRaw);
+                var cleanJson = aiResponse?.choices?[0]?.message?.content ?? "[]";
+
+                cleanJson = cleanJson.Replace("```json", "").Replace("```", "").Trim();
+
+                var data = JsonSerializer.Deserialize<List<CurrencyRow>>(cleanJson);
+
+                if (data == null || data.Count == 0)
+                {
+                    TempData["Error"] = "AI failed to extract structured data.";
+                    return RedirectToAction("Index");
+                }
+
+                // 🔥 convert to Excel format
+                var table = data.Select(x => new List<string>
+                {
+                    x.code,
+                    x.currency,
+                    x.buy.ToString(),
+                    x.sell.ToString()
+                }).ToList();
+
+                var excelFileName = _excel.CreateExcel(table);
 
                 var originalBaseName = Path.GetFileNameWithoutExtension(file.FileName);
                 var safeName = string.Concat(originalBaseName.Split(Path.GetInvalidFileNameChars()));
@@ -129,11 +148,11 @@ namespace PdfToExcel.Controllers
                 _context.ConvertedFiles.Add(entity);
                 await _context.SaveChangesAsync();
 
-                TempData["Success"] = "File converted with OCR and saved successfully.";
+                TempData["Success"] = "File converted with AI successfully 🔥";
             }
-            catch
+            catch (Exception ex)
             {
-                TempData["Error"] = "Something went wrong while processing your PDF.";
+                TempData["Error"] = ex.Message;
             }
             finally
             {

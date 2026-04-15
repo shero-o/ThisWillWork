@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Text.Json;
+using Azure;
+using Microsoft.AspNetCore.Mvc;
+using PdfToExcel.Models;
 using PdfToExcel.Services;
 
 namespace PdfToExcel.Controllers
@@ -10,19 +13,22 @@ namespace PdfToExcel.Controllers
         private readonly PdfToImageService _pdf;
         private readonly OcrService _ocr;
         private readonly ExcelService _excel;
+        private readonly AiService _ai;
 
         public OcrController(
             PdfToImageService pdf,
             OcrService ocr,
-            ExcelService excel)
+            ExcelService excel,
+            AiService ai)
         {
             _pdf = pdf;
             _ocr = ocr;
             _excel = excel;
+            _ai = ai;
         }
 
         [HttpPost("convert")]
-        public IActionResult Convert(IFormFile file)
+        public async Task<IActionResult> Convert(IFormFile file)
         {
             if (file == null)
                 return BadRequest("No file");
@@ -33,7 +39,7 @@ namespace PdfToExcel.Controllers
 
             using (var stream = new FileStream(pdfPath, FileMode.Create))
             {
-                file.CopyTo(stream);
+                await file.CopyToAsync(stream);
             }
 
             // PDF → images
@@ -47,14 +53,30 @@ namespace PdfToExcel.Controllers
                 fullText += _ocr.ExtractText(img) + "\n";
             }
 
-            // SIMPLE table parsing (basic version)
-            var table = fullText
-                .Split('\n')
-                .Select(line =>
-                    line.Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                        .ToList())
-                .Where(x => x.Count > 0)
-                .ToList();
+            // 🔥 AI STEP
+            var aiRaw = await _ai.CleanOcrAsync(fullText);
+
+            var aiResponse = JsonSerializer.Deserialize<AiResponse>(aiRaw);
+
+            var cleanJson = aiResponse?.choices?[0]?.message?.content ?? "[]";
+
+            // remove markdown if exists
+            cleanJson = cleanJson.Replace("```json", "").Replace("```", "").Trim();
+
+            // convert to objects
+            var data = JsonSerializer.Deserialize<List<CurrencyRow>>(cleanJson);
+
+            if (data == null || data.Count == 0)
+                return BadRequest("AI failed to extract data");
+
+            // convert to Excel format
+            var table = data.Select(x => new List<string>
+            {
+                x.code,
+                x.currency,
+                x.buy.ToString(),
+                x.sell.ToString()
+            }).ToList();
 
             // Excel
             var excelFile = _excel.CreateExcel(table);
